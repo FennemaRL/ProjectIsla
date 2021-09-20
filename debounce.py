@@ -1,21 +1,22 @@
-import threading, queue
-import datetime
 
 
-count = []
+from rx import operators as op
+from rx.subject import Subject
+from rx.scheduler import ThreadPoolScheduler
+
+
+t_pool = ThreadPoolScheduler(2)
+
+
 
 def debounceDec(seconds):
     def _debounceFunc(function):
-        q = queue.Queue(maxsize=3)
+        obs = Subject()
+        def wrapper(arg):
+            print('works')
+            function(*arg[0],**arg[1])
+        obs.pipe(op.debounce(seconds, t_pool)).subscribe(wrapper,scheduler=t_pool)
         def _debounceFunctionParams(*arg,**kwargs):
-            if q.qsize() != 0:
-                count.append(1)
-                q.get().cancel()
-            def anonimus(): 
-                 function(*arg,**kwargs)
-                 print("function executed after {}",len(count))
-            threadCalled=threading.Timer(seconds, anonimus)
-            threadCalled.start()
-            q.put(threadCalled)
+            obs.on_next((arg,kwargs))
         return _debounceFunctionParams
     return _debounceFunc
