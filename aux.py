@@ -1,29 +1,27 @@
-from debounce import debounceDec
+from debounce import debounceDec, t_pool
 from dotenv import load_dotenv
 import time
 import os
-load_dotenv() 
+load_dotenv()
 
+def isBle(device) :
+    return getattr(device, os.getenv('MATCH00')) == os.getenv('MATCH0') and any (x == os.getenv('MATCH1') for x in  device.metadata.get(os.getenv('MATCH2')))
 
 def distancec(rssi) :  
   return round(10**((-69-(rssi)) / (10 * 2)), 2)
 
-@debounceDec(10)
+@debounceDec(int(os.getenv('DTIME')))
 def timeoutBle(*args, **kwargs):
-    print('timeoutBle',args,kwargs)
     if timeoutBle._led.is_active:
-        #relay.off()
+        timeoutBle._relay.on()
         timeoutBle._led.off()
-        timeoutBle._scanner.stop()
+        timeoutBle._canFollow=False
+        print('timeoutBle')
+        
+def verifyBle(device):
+    distance =distancec(device.rssi)
+    if(isBle(device) and  distance ):#and not isLongDistance):
+        timeoutBle(device)
+    print("<%s, %d, %s> " % (device, device.rssi,distance))
 
-def verifyBle(bt_addr, rssi, packet, additional_info):
-    start = time.time()
-    distance =distancec(rssi)
-    isble =  os.getenv("MAC") == bt_addr
-    isLongDistance = distance > 1
-    if(isble ):#and not isLongDistance):
-        timeoutBle(bt_addr, rssi, packet= packet, additional_info=additional_info)
-    print("<%s, %d, %s> " % (bt_addr, rssi,distance))
-    #print("<%s, %d, %s> %s %s" % (bt_addr, rssi,distance(rssi), packet, additional_info))
-    print("Time Consumed")
-    print("% s seconds" % (time.time() - start))
+
